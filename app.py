@@ -350,14 +350,51 @@ def greedy_ctc_decode(logits: np.ndarray, itos: dict) -> str:
 def index():
     return render_template("index.html")
 
+def wer(ref: str, hyp: str) -> float:
+    """Compute WER (word error rate) between ref and hyp strings (word tokens separated by spaces)."""
+    r = ref.split()
+    h = hyp.split()
+    # handle empty reference
+    if len(r) == 0:
+        return 0.0 if len(h) == 0 else 1.0
+    d = np.zeros((len(r)+1, len(h)+1), dtype=np.uint32)
+    for i in range(len(r)+1): d[i][0] = i
+    for j in range(len(h)+1): d[0][j] = j
+    for i in range(1, len(r)+1):
+        for j in range(1, len(h)+1):
+            if r[i-1] == h[j-1]:
+                d[i][j] = d[i-1][j-1]
+            else:
+                d[i][j] = min(d[i-1][j-1] + 1, d[i][j-1] + 1, d[i-1][j] + 1)
+    return float(d[len(r)][len(h)]) / float(len(r))
+
 @app.route("/predict", methods=["POST"])
 def predict():
+    # Expect video file required, align (text) optional
     if "video" not in request.files:
-        return jsonify({"error":"no file uploaded"}), 400
-    f = request.files["video"]
+        return jsonify({"error": "no video file uploaded"}), 400
+    vid_file = request.files["video"]
+    align_file = request.files.get("align", None)
+
     tmp_dir = tempfile.mkdtemp()
-    vid_path = Path(tmp_dir) / f.filename
-    f.save(str(vid_path))
+    vid_path = Path(tmp_dir) / vid_file.filename
+    vid_file.save(str(vid_path))
+
+    gt_text = None
+    # If align file provided, parse it to ground-truth tokens (skip 'sil')
+    if align_file:
+        try:
+            raw = align_file.read().decode("utf-8", errors="ignore").splitlines()
+            toks = []
+            for ln in raw:
+                parts = ln.strip().split()
+                if len(parts) >= 3 and parts[2] != "sil":
+                    toks.append(parts[2])
+            gt_text = " ".join(toks)
+        except Exception as e:
+            # don't fail prediction for a bad align file; return warning instead
+            gt_text = None
+
     try:
         # extract audio to temp wav
         wav_path = Path(tmp_dir) / "extract.wav"
@@ -374,7 +411,11 @@ def predict():
             out_logits, logits_v, logits_a = MODEL(vis_t, aud_t)
             out_np = out_logits.detach().cpu().numpy()
         hyp = greedy_ctc_decode(out_np, ITOS)
-        return jsonify({"hypothesis": hyp})
+        response = {"hypothesis": hyp}
+        if gt_text is not None:
+            response["ground_truth"] = gt_text
+            response["wer"] = float("{:.4f}".format(wer(gt_text, hyp)))
+        return jsonify(response)
     except Exception as e:
         return jsonify({"error": str(e)})
     finally:
@@ -386,9 +427,6 @@ def predict():
         except Exception:
             pass
 
-@app.route("/static/<path:path>")
-def static_proxy(path):
-    return send_from_directory("static", path)
 
 if __name__ == "__main__":
     print("Starting server on http://127.0.0.1:5000")

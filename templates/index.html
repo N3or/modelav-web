@@ -7,8 +7,11 @@
   </head>
   <body>
     <div class="container">
-      <h1>ModelAV demo — upload a video</h1>
-      <input id="fileInput" type="file" accept="video/*" />
+      <h1>ModelAV demo — upload a video + optional .align</h1>
+      <label>Video:</label><br />
+      <input id="fileInput" type="file" accept="video/*" /><br /><br />
+      <label>Align file (.align) — optional (will compute WER):</label><br />
+      <input id="alignInput" type="file" accept=".align,.txt" /><br /><br />
       <button id="sendBtn">Upload & Predict</button>
       <div id="status"></div>
       <div id="result"></div>
