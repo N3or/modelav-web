@@ -1,0 +1,11 @@
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+modelav_best.pth
+shape_predictor_68_face_landmarks.dat
+.vscode
+.DS_Store
