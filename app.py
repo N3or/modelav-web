@@ -17,17 +17,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # ---------------- Config (edit if needed) ----------------
-BASE = Path(r"C:\webtest")
-MODEL_PATH = BASE / "modelav_best.pth"
-SHAPE_PRED_PATH = BASE / "shape_predictor_68_face_landmarks.dat"
-VOCAB_JSON = BASE / "vocab.json"   # optional; model checkpoint may include 'vocab'
+# Prefer container/runtime environment variables when available.
+# This makes the app work both locally (Windows dev) and inside Docker (Linux paths).
+import os
+from pathlib import Path
+
+# Resolve model & shape paths (env var -> container default)
+MODEL_PATH = Path(os.getenv("MODEL_PATH", "/app/modelav_best.pth"))
+SHAPE_PRED_PATH = Path(os.getenv("SHAPE_PATH", "/app/shape_predictor_68_face_landmarks.dat"))
+VOCAB_JSON = Path(os.getenv("VOCAB_JSON", "/app/vocab.json"))   # optional; model checkpoint may include 'vocab'
+
+# Other runtime constants (leave unchanged unless you intend to change)
 DESIRED_FPS = 25
-FRAME_SIZE = (112,112)  # (W,H)
+FRAME_SIZE = (112, 112)  # (W,H)
 SR = 50000               # sample rate used in your preprocessing (ensure match)
 N_MELS = 80
 WIN_MS = 25
 HOP_MS = 40
+
+import torch
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Print resolved paths so logs show what the app uses (helps debugging in containers)
+print(f"Resolved MODEL_PATH = {MODEL_PATH}", flush=True)
+print(f"Resolved SHAPE_PRED_PATH = {SHAPE_PRED_PATH}", flush=True)
+print(f"Resolved VOCAB_JSON = {VOCAB_JSON}", flush=True)
+
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
