@@ -1,0 +1,15 @@
+# .gitignore
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+*.mp4
+*.wav
+modelav_best.pth
+shape_predictor_68_face_landmarks.dat
+vocab.json
+.env
+.DS_Store
