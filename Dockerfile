@@ -32,6 +32,16 @@ except Exception:
     raise SystemExit(1)
 PY
 
+# ----------------------------
+# download model files at build
+# ----------------------------
+ARG MODEL_URL
+ARG SHAPE_URL
+
+# if URLs are passed, fetch files into /app
+RUN if [ -n "$MODEL_URL" ]; then wget -O /app/modelav_best.pth "$MODEL_URL"; fi && \
+    if [ -n "$SHAPE_URL" ]; then wget -O /app/shape_predictor_68_face_landmarks.dat "$SHAPE_URL"; fi
+
 # copy entrypoint (download-if-missing + start)
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
