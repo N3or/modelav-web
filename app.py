@@ -427,6 +427,21 @@ def predict():
         except Exception:
             pass
 
+@app.route("/healthz")
+def healthz():
+    """
+    Render-friendly healthcheck. Returns 200 when app has required files and model loaded.
+    """
+    ok_files = MODEL_PATH.exists() and SHAPE_PRED_PATH.exists()
+    ok_model = (MODEL is not None)  # MODEL is loaded earlier if files present
+    # return JSON so the Render healthchecker can parse status easily
+    return jsonify({
+        "status": "ok" if ok_files and ok_model else "degraded",
+        "model_file_present": str(MODEL_PATH),
+        "shape_file_present": str(SHAPE_PRED_PATH),
+        "model_loaded": bool(ok_model)
+    }), (200 if ok_files else 503)
+
 
 if __name__ == "__main__":
     print("Starting server on http://127.0.0.1:5000")
